@@ -28,4 +28,4 @@ Pokud skript nefunguje:
 1. Zkontrolujte verze pluginů
 2. Ujistěte se, že server má správná oprávnění
 3. Restartujte server
-```
+```s
