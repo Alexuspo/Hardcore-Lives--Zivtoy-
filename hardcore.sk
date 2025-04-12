@@ -1,0 +1,264 @@
+# Lives System Skript
+# Sleduje počet životů hráčů a dočasně je banuje po třech úmrtích
+
+# Proměnné
+options:
+    prefix: &8[&cŽivoty&8] &r
+
+# Nastavení počtu životů při prvním připojení
+on first join:
+    set {lives::%player's uuid%} to 3
+    send "{@prefix} &aVítej! Máš &2%{lives::%player's uuid%}% &aživotů."
+
+# Zobrazení životů při připojení
+on join:
+    if {lives::%player's uuid%} is not set:
+        set {lives::%player's uuid%} to 3
+    
+    set {_livesColor} to ""
+    if {lives::%player's uuid%} is 3:
+        set {_livesColor} to "&2" # Zelená pro 3 životy
+    else if {lives::%player's uuid%} is 2:
+        set {_livesColor} to "&6" # Oranžová pro 2 životy
+    else if {lives::%player's uuid%} is 1:
+        set {_livesColor} to "&c" # Červená pro 1 život
+    
+    send "{@prefix} &aAktuálně máš %{_livesColor}%%{lives::%player's uuid%}% &aživotů."
+    
+    # Nastavení tab listu - zobrazení počtu životů
+    updateTabList(player)
+
+# Příkaz pro zobrazení životů
+command /zivoty:
+    trigger:
+        set {_livesColor} to ""
+        if {lives::%player's uuid%} is 3:
+            set {_livesColor} to "&2" # Zelená pro 3 životy
+        else if {lives::%player's uuid%} is 2:
+            set {_livesColor} to "&6" # Oranžová pro 2 životy
+        else if {lives::%player's uuid%} is 1:
+            set {_livesColor} to "&c" # Červená pro 1 život
+        
+        send "{@prefix} &aTvoje životy: %{_livesColor}%%{lives::%player's uuid%}%"
+
+# Snížení počtu životů při smrti
+on death:
+    # Zajistíme, že hráč má nastavenou proměnnou
+    if {lives::%victim's uuid%} is not set:
+        set {lives::%victim's uuid%} to 3
+    
+    # Snížíme počet životů bez ohledu na to, kdo nebo co hráče zabilo
+    remove 1 from {lives::%victim's uuid%}
+    
+    # Získáme správnou barvu podle zbývajících životů
+    set {_livesColor} to ""
+    if {lives::%victim's uuid%} is 2:
+        set {_livesColor} to "&6"
+    else if {lives::%victim's uuid%} is 1:
+        set {_livesColor} to "&c"
+    else if {lives::%victim's uuid%} is 0:
+        set {_livesColor} to "&4"
+    
+    # Zobrazíme zbývající životy hráči
+    send "{@prefix} &cZemřel jsi! Zbývá ti %{_livesColor}%%{lives::%victim's uuid%}% &cživotů." to victim
+    
+    # Když dojdou životy
+    if {lives::%victim's uuid%} is 0:
+        # Generování opravdu náhodného času banu v rozmezí 0-10 hodin
+        
+        # Náhodný celkový čas v sekundách (0-10 hodin)
+        set {_totalSeconds} to random integer between 0 and 36000 # 10 hodin = 36000 sekund
+        
+        # Výpočet hodin, minut a sekund z celkového času
+        set {_hours} to floor({_totalSeconds} / 3600)
+        set {_remainingSeconds} to {_totalSeconds} - ({_hours} * 3600) # Oprava: nahrazení mod operátoru odčítáním
+        set {_minutes} to floor({_remainingSeconds} / 60)
+        set {_seconds} to {_remainingSeconds} - ({_minutes} * 60) # Oprava: nahrazení mod operátoru odčítáním
+        
+        # Vytvoříme časový formát podle požadavků tempban příkazu
+        set {_formattedTime} to ""
+        if {_hours} is greater than 0:
+            set {_formattedTime} to "%{_formattedTime}%%{_hours}%h"
+        if {_minutes} is greater than 0:
+            if {_formattedTime} is not "":
+                set {_formattedTime} to "%{_formattedTime}% "
+            set {_formattedTime} to "%{_formattedTime}%%{_minutes}%m"
+        
+        # Oprava: rozdělení složité podmínky na více jednodušších
+        if {_seconds} is greater than 0:
+            if {_formattedTime} is not "":
+                set {_formattedTime} to "%{_formattedTime}% "
+            set {_formattedTime} to "%{_formattedTime}%%{_seconds}%s"
+        else if {_hours} is 0:
+            if {_minutes} is 0:
+                set {_formattedTime} to "1s" # Minimální ban 1 sekunda
+        
+        # Vytvoříme čitelný formát pro zobrazení v oznámení
+        set {_readableTime} to ""
+        if {_hours} is greater than 0:
+            if {_hours} is 1:
+                set {_readableTime} to "%{_readableTime}%%{_hours}% hodina"
+            else if {_hours} is 2, 3 or 4:
+                set {_readableTime} to "%{_readableTime}%%{_hours}% hodiny"
+            else:
+                set {_readableTime} to "%{_readableTime}%%{_hours}% hodin"
+            
+            # Oprava: rozdělení složité podmínky
+            if {_minutes} is greater than 0:
+                set {_readableTime} to "%{_readableTime}%, "
+            else if {_seconds} is greater than 0:
+                set {_readableTime} to "%{_readableTime}%, "
+        
+        if {_minutes} is greater than 0:
+            if {_minutes} is 1:
+                set {_readableTime} to "%{_readableTime}%%{_minutes}% minuta"
+            else if {_minutes} is 2, 3 or 4:
+                set {_readableTime} to "%{_readableTime}%%{_minutes}% minuty"
+            else:
+                set {_readableTime} to "%{_readableTime}%%{_minutes}% minut"
+            
+            if {_seconds} is greater than 0:
+                set {_readableTime} to "%{_readableTime}% a "
+        
+        # Oprava: rozdělení složité podmínky
+        if {_seconds} is greater than 0:
+            if {_seconds} is 1:
+                set {_readableTime} to "%{_readableTime}%%{_seconds}% sekunda"
+            else if {_seconds} is 2, 3 or 4:
+                set {_readableTime} to "%{_readableTime}%%{_seconds}% sekundy"
+            else:
+                set {_readableTime} to "%{_readableTime}%%{_seconds}% sekund"
+        else if {_hours} is 0:
+            if {_minutes} is 0:
+                set {_readableTime} to "1 sekunda" # Minimální ban 1 sekunda
+        
+        # Ban hráče - používáme správný formát pro tempban
+        wait 2 ticks
+        execute console command "tempban %victim% %{_formattedTime}% Vyčerpal jsi všechny životy! Ban na: %{_readableTime}%"
+        
+        # Resetování životů pro příští přihlášení
+        set {lives::%victim's uuid%} to 3
+        
+        # Oznámení všem hráčům
+        broadcast "{@prefix} &4%victim% &cztratil všechny životy a byl dočasně banován na &4%{_readableTime}%&c!"
+    
+    # Když hráč ztratí život, aktualizujeme jeho tab
+    if {lives::%victim's uuid%} is greater than 0:
+        wait 1 tick
+        updateTabList(victim)
+
+# Přidání života po snědení zlatého jablka
+on consume:
+    # Kontrola, zda hráč snědl zlaté jablko nebo očarované zlaté jablko
+    if event-item is a golden apple:
+        # Kontrola, zda hráč má méně než 3 životy
+        if {lives::%player's uuid%} is less than 3:
+            # Přidání jednoho života
+            add 1 to {lives::%player's uuid%}
+            
+            # Nastavení barvy podle nového počtu životů
+            set {_livesColor} to ""
+            if {lives::%player's uuid%} is 3:
+                set {_livesColor} to "&2" # Zelená pro 3 životy
+            else if {lives::%player's uuid%} is 2:
+                set {_livesColor} to "&6" # Oranžová pro 2 životy
+            
+            # Oznámení hráči o získání života
+            send "{@prefix} &aZískal jsi jeden život za snědení zlatého jablka! Nyní máš %{_livesColor}%%{lives::%player's uuid%}% &aživotů."
+            
+            # Přidání zvukového efektu
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player's location for player
+            
+            # Aktualizace tab listu po přidání života
+            updateTabList(player)
+        else:
+            # Pokud již má maximální počet životů
+            send "{@prefix} &eUž máš maximální počet životů (3), další životy nemůžeš získat."
+    else if event-item is an enchanted golden apple:
+        # Kontrola, zda hráč má méně než 3 životy
+        if {lives::%player's uuid%} is less than 3:
+            # Přidání jednoho života
+            add 1 to {lives::%player's uuid%}
+            
+            # Nastavení barvy podle nového počtu životů
+            set {_livesColor} to ""
+            if {lives::%player's uuid%} is 3:
+                set {_livesColor} to "&2" # Zelená pro 3 životy
+            else if {lives::%player's uuid%} is 2:
+                set {_livesColor} to "&6" # Oranžová pro 2 životy
+            
+            # Oznámení hráči o získání života
+            send "{@prefix} &aZískal jsi jeden život za snědení očarovaného zlatého jablka! Nyní máš %{_livesColor}%%{lives::%player's uuid%}% &aživotů."
+            
+            # Přidání zvukového efektu
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player's location for player
+            
+            # Aktualizace tab listu po přidání života
+            updateTabList(player)
+        else:
+            # Pokud již má maximální počet životů
+            send "{@prefix} &eUž máš maximální počet životů (3), další životy nemůžeš získat."
+
+# Příkaz pro adminy na obnovení životů hráči
+command /resetlives [<player>]:
+    permission: lives.admin
+    permission message: {@prefix} &cNemáš oprávnění použít tento příkaz!
+    usage: /resetlives <hráč>
+    trigger:
+        if arg-1 is set:
+            set {lives::%arg-1's uuid%} to 3
+            send "{@prefix} &aŽivoty hráče %arg-1% byly obnoveny na 3."
+            send "{@prefix} &aAdministrátor ti obnovil životy na 3." to arg-1
+            
+            # Aktualizace tab listu
+            if arg-1 is online:
+                updateTabList(arg-1)
+        else:
+            send "{@prefix} &cMusíš zadat jméno hráče!"
+
+# Příkaz pro adminy na nastavení počtu životů
+command /setlives [<player>] [<integer>]:
+    permission: lives.admin
+    permission message: {@prefix} &cNemáš oprávnění použít tento příkaz!
+    usage: /setlives <hráč> <počet>
+    trigger:
+        if arg-1 is set:
+            if arg-2 is set:
+                if arg-2 is between 0 and 3:
+                    set {lives::%arg-1's uuid%} to arg-2
+                    send "{@prefix} &aNastavil jsi %arg-2% životů hráči %arg-1%."
+                    send "{@prefix} &aPočet tvých životů byl nastaven na %arg-2%." to arg-1
+                    
+                    # Aktualizace tab listu
+                    if arg-1 is online:
+                        updateTabList(arg-1)
+                else:
+                    send "{@prefix} &cPočet životů musí být mezi 0 a 3!"
+            else:
+                send "{@prefix} &cMusíš zadat počet životů!"
+        else:
+            send "{@prefix} &cMusíš zadat jméno hráče!"
+
+# Funkce pro aktualizaci tab listu
+function updateTabList(p: player):
+    set {_uuid} to uuid of {_p}
+    set {_livesColor} to ""
+    if {lives::%{_uuid}%} is 3:
+        set {_livesColor} to "&2" # Zelená pro 3 životy
+    else if {lives::%{_uuid}%} is 2:
+        set {_livesColor} to "&6" # Oranžová pro 2 životy
+    else if {lives::%{_uuid}%} is 1:
+        set {_livesColor} to "&c" # Červená pro 1 život
+    
+    # Nastavení prefixu nebo suffixu v tab listu (záleží na verzi serveru a pluginu)
+    set tab list name of {_p} to "%{_p}% %{_livesColor}%[%{lives::%{_uuid}%}%&f]"
+
+# Aktualizace všech hráčů při načtení skriptu
+on skript load:
+    loop all players:
+        updateTabList(loop-player)
+
+# Opravit tab list každých 5 minut (pro případ, že by došlo k de-synchronizaci)
+every 5 minutes:
+    loop all players:
+        updateTabList(loop-player)
