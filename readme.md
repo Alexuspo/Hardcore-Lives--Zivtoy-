@@ -3,6 +3,16 @@
 ## O systému
 Tento plugin přidává do Minecraft serveru systém omezených životů, kde každý hráč má maximálně 3 životy. Když hráč vyčerpá všechny své životy, je dočasně vyloučen ze hry (ban) na náhodnou dobu. Systém také umožňuje získat zpět životy pomocí zlatých jablek.
 
+## Požadavky pro fungování
+Pro správné fungování tohoto skriptu je nutné mít:
+- **Server**: Bukkit, Spigot nebo Paper (testováno na verzi 1.16+)
+- **Plugin Skript**: Verze 2.6+ (https://www.spigotmc.org/resources/skript.114544/)
+- **Plugin EssentialsX**: Pro funkci tempban příkazů
+- **Oprávnění**: Administrátoři musí mít nastavené oprávnění `lives.admin`
+- **Kapacita disku**: Minimálně 5 MB volného místa pro ukládání dat o životech hráčů
+- **Správné nastavení serveru**: V souboru `server.properties` musí být povoleno `enable-command-block=true`
+- **Tab list plugin** (volitelné): Pokud chcete plně využít funkci zobrazení životů v TAB menu, doporučujeme plugin jako je TabList nebo podobný
+
 ## Funkce a vlastnosti
 - **Omezený počet životů**: Každý hráč má maximálně 3 životy
 - **Barevné indikátory**: Životy jsou barevně označeny (zelená pro 3, oranžová pro 2, červená pro 1)
