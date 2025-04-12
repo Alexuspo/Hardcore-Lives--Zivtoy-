@@ -56,12 +56,6 @@ Hráč [1]  - červené číslo
 | `/resetlives <hráč>` | Obnoví hráči plný počet životů (3) | `lives.admin` |
 | `/setlives <hráč> <počet>` | Nastaví hráči specifický počet životů (0-3) | `lives.admin` |
 
-## Tipy pro přežití
-1. **Buď opatrný**: Každá smrt tě přibližuje k dočasnému vyloučení
-2. **Sbírej zlatá jablka**: Jsou vzácná, ale mohou ti zachránit život
-3. **Sleduj počet svých životů**: V TAB menu nebo pomocí příkazu `/zivoty`
-4. **Vyhýbej se riskantním situacím**: Zejména když ti zbývá poslední život
-
 ## Technické informace
 - Plugin je implementován pomocí Skriptu
 - Životy jsou ukládány do persistentní paměti a zachovávají se mezi restarty serveru
