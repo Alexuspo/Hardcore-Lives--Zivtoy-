@@ -4,7 +4,8 @@
 - Každý hráč má 3 životy
 - Při smrti ztrácí 1 život
 - Po ztrátě všech životů je hráč dočasně zabanován (0-10 hodin)
-- Zlatá jablka obnovují životy
+- Po návratu z banu má hráč pouze 1 život
+- Zlatá jablka obnovují životy (max. 3)
 
 ## Příkazy
 - `/zivoty` - zobrazí počet zbývajících životů
@@ -28,4 +29,3 @@ Pokud skript nefunguje:
 1. Zkontrolujte verze pluginů
 2. Ujistěte se, že server má správná oprávnění
 3. Restartujte server
-```s

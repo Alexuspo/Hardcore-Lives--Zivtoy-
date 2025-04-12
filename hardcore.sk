@@ -136,8 +136,8 @@ on death:
         wait 2 ticks
         execute console command "tempban %victim% %{_formattedTime}% Vyčerpal jsi všechny životy! Ban na: %{_readableTime}%"
         
-        # Resetování životů pro příští přihlášení
-        set {lives::%victim's uuid%} to 3
+        # Resetování životů pro příští přihlášení - nastaveno na 1 místo 3
+        set {lives::%victim's uuid%} to 1
         
         # Oznámení všem hráčům
         broadcast "{@prefix} &4%victim% &cztratil všechny životy a byl dočasně banován na &4%{_readableTime}%&c!"
