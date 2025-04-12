@@ -5,7 +5,7 @@ Tento plugin přidává do Minecraft serveru systém omezených životů, kde ka
 
 ## Požadavky pro fungování
 Pro správné fungování tohoto skriptu je nutné mít:
-- **Server**: Bukkit, Spigot nebo Paper (testováno na verzi 1.16+)
+- **Server**: Bukkit, Spigot nebo Paper (testováno na verzi 1.21.4)
 - **Plugin Skript**: Verze 2.6+ (https://www.spigotmc.org/resources/skript.114544/)
 - **Plugin EssentialsX**: Pro funkci tempban příkazů
 - **Oprávnění**: Administrátoři musí mít nastavené oprávnění `lives.admin`
