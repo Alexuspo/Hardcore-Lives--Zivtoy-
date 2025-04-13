@@ -1,4 +1,5 @@
-# Hardcore Lives System
+![Hardcore lives](https://github.com/user-attachments/assets/b8185960-77bd-4a04-ae03-e2a00de7e3c3)
+
 
 ## O co jde
 - Každý hráč má na začátku pouze 3 životy
