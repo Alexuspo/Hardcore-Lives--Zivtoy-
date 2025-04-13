@@ -7,6 +7,7 @@ options:
 
 # Nastavení počtu životů při prvním připojení
 on first join:
+    # UUID jsou nyní objekty, ale to by nemělo ovlivnit základní použití
     set {lives::%player's uuid%} to 3
     send "{@prefix} &aVítej! Máš &2%{lives::%player's uuid%}% &aživotů."
 
