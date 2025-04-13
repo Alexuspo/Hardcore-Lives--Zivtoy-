@@ -1,0 +1,398 @@
+# Lives System Skript
+# Tracks player lives and temporarily bans them after three deaths
+
+# Variables
+options:
+    prefix: &8[&cLives&8] &r
+    # Discord channel ID for ban notifications
+    discord-channel-id: "1360974208456196096"
+
+# Set lives count on first join
+on first join:
+    # UUIDs are objects but this shouldn't affect basic usage
+    set {lives::%player's uuid%} to 3
+    send "{@prefix} &aWelcome! You have &2%{lives::%player's uuid%}% &alives."
+
+# Display lives on join
+on join:
+    if {lives::%player's uuid%} is not set:
+        set {lives::%player's uuid%} to 3
+    
+    set {_livesColor} to ""
+    if {lives::%player's uuid%} is 3:
+        set {_livesColor} to "&2" # Green for 3 lives
+    else if {lives::%player's uuid%} is 2:
+        set {_livesColor} to "&6" # Orange for 2 lives
+    else if {lives::%player's uuid%} is 1:
+        set {_livesColor} to "&c" # Red for 1 life
+    
+    send "{@prefix} &aYou currently have %{_livesColor}%%{lives::%player's uuid%}% &alives."
+    
+    # Update tab list display
+    updateTabList(player)
+
+# Command to display lives
+command /lives:
+    aliases: life
+    trigger:
+        set {_livesColor} to ""
+        if {lives::%player's uuid%} is 3:
+            set {_livesColor} to "&2" # Green for 3 lives
+        else if {lives::%player's uuid%} is 2:
+            set {_livesColor} to "&6" # Orange for 2 lives
+        else if {lives::%player's uuid%} is 1:
+            set {_livesColor} to "&c" # Red for 1 life
+        
+        send "{@prefix} &aYour lives: %{_livesColor}%%{lives::%player's uuid%}%"
+
+# Command to display all players' lives (including offline)
+command /alllives [<integer>]:
+    aliases: liststats
+    permission: lives.list
+    permission message: {@prefix} &cYou don't have permission to use this command!
+    usage: /alllives [page]
+    trigger:
+        # Get player count
+        set {_count} to 0
+        loop {lives::*}:
+            add 1 to {_count}
+        
+        # If no player has lives records
+        if {_count} is 0:
+            send "{@prefix} &cNo player has lives records yet."
+            stop
+        
+        # Pagination setup
+        set {_perPage} to 10 # Players per page
+        set {_maxPage} to ceil({_count} / {_perPage})
+        
+        # Check page validity
+        if arg-1 is not set:
+            set {_page} to 1
+        else:
+            set {_page} to arg-1
+        
+        if {_page} > {_maxPage}:
+            set {_page} to {_maxPage}
+        
+        if {_page} < 1:
+            set {_page} to 1
+        
+        # Calculate indexes for pagination
+        set {_start} to ({_page} - 1) * {_perPage} + 1
+        set {_end} to {_page} * {_perPage}
+        if {_end} > {_count}:
+            set {_end} to {_count}
+        
+        # Header
+        send "&8&m-----------------------------------------------------"
+        send "{@prefix} &e&lAll Players Lives List &7(Page %{_page}%/%{_maxPage}%)"
+        send "&8&m-----------------------------------------------------"
+        
+        # Process and display players
+        set {_i} to 0
+        loop indices of {lives::*}:
+            add 1 to {_i}
+            
+            if {_i} is between {_start} and {_end}:
+                set {_uuid} to loop-value parsed as an offline player's uuid
+                set {_playerName} to "%{_uuid}%" parsed as an offline player
+                
+                # Check if player is online or offline
+                set {_status} to ""
+                set {_name} to {_playerName}
+                loop all players:
+                    set {_loopPlayer} to loop-player
+                    if uuid of {_loopPlayer} is {_uuid}:
+                        set {_status} to " &a[ONLINE]"
+                        set {_name} to {_loopPlayer}
+                
+                # Set color based on lives count
+                set {_livesColor} to ""
+                if {lives::%{_uuid}%} is 3:
+                    set {_livesColor} to "&2" # Green for 3 lives
+                else if {lives::%{_uuid}%} is 2:
+                    set {_livesColor} to "&6" # Orange for 2 lives
+                else if {lives::%{_uuid}%} is 1:
+                    set {_livesColor} to "&c" # Red for 1 life
+                else if {lives::%{_uuid}%} is 0:
+                    set {_livesColor} to "&4" # Dark red for 0 lives
+                
+                # Display row
+                send "&7%{_i}%. &f%{_name}%%{_status}%: %{_livesColor}%%{lives::%{_uuid}%}% &7life/lives"
+        
+        # Footer and navigation buttons
+        send "&8&m-----------------------------------------------------"
+        
+        # Display navigation buttons if there are multiple pages
+        if {_maxPage} > 1:
+            if {_page} is 1:
+                set {_prevButton} to "&8[&7<<<&8]"
+            else:
+                set {_prevButton} to "&8[&e<<<&8]"
+            
+            if {_page} is {_maxPage}:
+                set {_nextButton} to "&8[&7>>>&8]"
+            else:
+                set {_nextButton} to "&8[&e>>>&8]"
+            
+            send formatted "%{_prevButton}% &7Page &e%{_page}%&7/&e%{_maxPage}% %{_nextButton}%"
+            send formatted "<tooltip:Click for previous page><suggest command:/alllives %{_page} - 1%>%{_prevButton}%<reset> <tooltip:Click for next page><suggest command:/alllives %{_page} + 1%>%{_nextButton}%<reset>"
+
+# Reduce lives on death
+on death:
+    # Ensure player has lives variable set
+    if {lives::%victim's uuid%} is not set:
+        set {lives::%victim's uuid%} to 3
+    
+    # Reduce lives regardless of who or what killed the player
+    remove 1 from {lives::%victim's uuid%}
+    
+    # Get appropriate color based on remaining lives
+    set {_livesColor} to ""
+    if {lives::%victim's uuid%} is 2:
+        set {_livesColor} to "&6"
+    else if {lives::%victim's uuid%} is 1:
+        set {_livesColor} to "&c"
+    else if {lives::%victim's uuid%} is 0:
+        set {_livesColor} to "&4"
+    
+    # Show remaining lives to player
+    send "{@prefix} &cYou died! You have %{_livesColor}%%{lives::%victim's uuid%}% &clives left." to victim
+    
+    # When out of lives
+    if {lives::%victim's uuid%} is 0:
+        # Generate a random ban time between 0-10 hours
+        
+        # Random total time in seconds (0-10 hours)
+        set {_totalSeconds} to random integer between 0 and 36000 # 10 hours = 36000 seconds
+        
+        # Calculate hours, minutes and seconds from total time
+        set {_hours} to floor({_totalSeconds} / 3600)
+        set {_remainingSeconds} to {_totalSeconds} - ({_hours} * 3600)
+        set {_minutes} to floor({_remainingSeconds} / 60)
+        set {_seconds} to {_remainingSeconds} - ({_minutes} * 60)
+        
+        # Create time format for tempban command
+        set {_formattedTime} to ""
+        if {_hours} is greater than 0:
+            set {_formattedTime} to "%{_formattedTime}%%{_hours}%h"
+        if {_minutes} is greater than 0:
+            if {_formattedTime} is not "":
+                set {_formattedTime} to "%{_formattedTime}% "
+            set {_formattedTime} to "%{_formattedTime}%%{_minutes}%m"
+        
+        # Fix: split complex condition into simpler ones
+        if {_seconds} is greater than 0:
+            if {_formattedTime} is not "":
+                set {_formattedTime} to "%{_formattedTime}% "
+            set {_formattedTime} to "%{_formattedTime}%%{_seconds}%s"
+        else if {_hours} is 0:
+            if {_minutes} is 0:
+                set {_formattedTime} to "1s" # Minimum ban 1 second
+        
+        # Create readable format for display in notifications
+        set {_readableTime} to ""
+        if {_hours} is greater than 0:
+            if {_hours} is 1:
+                set {_readableTime} to "%{_readableTime}%%{_hours}% hour"
+            else:
+                set {_readableTime} to "%{_readableTime}%%{_hours}% hours"
+            
+            # Fix: split complex condition
+            if {_minutes} is greater than 0:
+                set {_readableTime} to "%{_readableTime}%, "
+            else if {_seconds} is greater than 0:
+                set {_readableTime} to "%{_readableTime}%, "
+        
+        if {_minutes} is greater than 0:
+            if {_minutes} is 1:
+                set {_readableTime} to "%{_readableTime}%%{_minutes}% minute"
+            else:
+                set {_readableTime} to "%{_readableTime}%%{_minutes}% minutes"
+            
+            if {_seconds} is greater than 0:
+                set {_readableTime} to "%{_readableTime}% and "
+        
+        # Fix: split complex condition
+        if {_seconds} is greater than 0:
+            if {_seconds} is 1:
+                set {_readableTime} to "%{_readableTime}%%{_seconds}% second"
+            else:
+                set {_readableTime} to "%{_readableTime}%%{_seconds}% seconds"
+        else if {_hours} is 0:
+            if {_minutes} is 0:
+                set {_readableTime} to "1 second" # Minimum ban 1 second
+        
+        # Ban player - use correct format for tempban
+        wait 2 ticks
+        execute console command "tempban %victim% %{_formattedTime}% You've used all your lives! Ban duration: %{_readableTime}%"
+        
+        # Reset lives for next login - set to 1 instead of 3
+        set {lives::%victim's uuid%} to 1
+        
+        # Announce to all players
+        broadcast "{@prefix} &4%victim% &clost all lives and was temporarily banned for &4%{_readableTime}%&c!"
+        
+        # Send notification to Discord
+        set {_discordLoaded} to false
+        loop all plugins:
+            if loop-value is "DiscordSRV":
+                set {_discordLoaded} to true
+                
+        if {_discordLoaded} is true:
+            # Send message to Discord using the correct command
+            set {_discordMessage} to "💀 **%victim%** lost all lives! 🔨 Temporary ban for: **%{_readableTime}%** ⏰"
+            execute console command "discord broadcast #server-bany %{_discordMessage}%"
+            
+            # Log to console
+            log "[HardcoreLives] Sent ban notification for player %victim% to Discord server" to "plugins/Skript/logs/hardcore-lives.log"
+        
+        # Log warning if DiscordSRV is not installed
+        if {_discordLoaded} is false:
+            log "[HardcoreLives] WARNING: DiscordSRV is not installed or loaded, notification was not sent" to "plugins/Skript/logs/hardcore-lives.log"
+    
+    # When player loses a life, update their tab
+    if {lives::%victim's uuid%} is greater than 0:
+        wait 1 tick
+        updateTabList(victim)
+
+# Add life after eating a golden apple
+on consume:
+    # Check if player ate a golden apple or enchanted golden apple
+    if event-item is a golden apple:
+        # Check if player has less than 3 lives
+        if {lives::%player's uuid%} is less than 3:
+            # Add one life
+            add 1 to {lives::%player's uuid%}
+            
+            # Set color based on new lives count
+            set {_livesColor} to ""
+            if {lives::%player's uuid%} is 3:
+                set {_livesColor} to "&2" # Green for 3 lives
+            else if {lives::%player's uuid%} is 2:
+                set {_livesColor} to "&6" # Orange for 2 lives
+            
+            # Notify player about gaining a life
+            send "{@prefix} &aYou gained one life for eating a golden apple! You now have %{_livesColor}%%{lives::%player's uuid%}% &alives."
+            
+            # Add sound effect
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player's location for player
+            
+            # Update tab list after adding life
+            updateTabList(player)
+        else:
+            # If already at maximum lives
+            send "{@prefix} &eYou already have maximum lives (3), you can't gain more."
+    else if event-item is an enchanted golden apple:
+        # Check if player has less than 3 lives
+        if {lives::%player's uuid%} is less than 3:
+            # Add one life
+            add 1 to {lives::%player's uuid%}
+            
+            # Set color based on new lives count
+            set {_livesColor} to ""
+            if {lives::%player's uuid%} is 3:
+                set {_livesColor} to "&2" # Green for 3 lives
+            else if {lives::%player's uuid%} is 2:
+                set {_livesColor} to "&6" # Orange for 2 lives
+            
+            # Notify player about gaining a life
+            send "{@prefix} &aYou gained one life for eating an enchanted golden apple! You now have %{_livesColor}%%{lives::%player's uuid%}% &alives."
+            
+            # Add sound effect
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player's location for player
+            
+            # Update tab list after adding life
+            updateTabList(player)
+        else:
+            # If already at maximum lives
+            send "{@prefix} &eYou already have maximum lives (3), you can't gain more."
+
+# Admin command to restore player lives
+command /resetlives [<player>]:
+    permission: lives.admin
+    permission message: {@prefix} &cYou don't have permission to use this command!
+    usage: /resetlives <player>
+    trigger:
+        if arg-1 is set:
+            set {lives::%arg-1's uuid%} to 3
+            send "{@prefix} &aLives of player %arg-1% have been restored to 3."
+            send "{@prefix} &aAn administrator has restored your lives to 3." to arg-1
+            
+            # Update tab list
+            if arg-1 is online:
+                updateTabList(arg-1)
+        else:
+            send "{@prefix} &cYou must specify a player name!"
+
+# Admin command to set lives count
+command /setlives [<player>] [<integer>]:
+    permission: lives.admin
+    permission message: {@prefix} &cYou don't have permission to use this command!
+    usage: /setlives <player> <count>
+    trigger:
+        if arg-1 is set:
+            if arg-2 is set:
+                if arg-2 is between 0 and 3:
+                    set {lives::%arg-1's uuid%} to arg-2
+                    send "{@prefix} &aYou've set %arg-2% lives for player %arg-1%."
+                    send "{@prefix} &aYour lives count has been set to %arg-2%." to arg-1
+                    
+                    # Update tab list
+                    if arg-1 is online:
+                        updateTabList(arg-1)
+                else:
+                    send "{@prefix} &cLives count must be between 0 and 3!"
+            else:
+                send "{@prefix} &cYou must specify the number of lives!"
+        else:
+            send "{@prefix} &cYou must specify a player name!"
+
+# Function to update tab list
+function updateTabList(p: player):
+    set {_uuid} to uuid of {_p}
+    set {_livesColor} to ""
+    if {lives::%{_uuid}%} is 3:
+        set {_livesColor} to "&2" # Green for 3 lives
+    else if {lives::%{_uuid}%} is 2:
+        set {_livesColor} to "&6" # Orange for 2 lives
+    else if {lives::%{_uuid}%} is 1:
+        set {_livesColor} to "&c" # Red for 1 life
+    
+    # Set prefix or suffix in tab list (depends on server version and plugin)
+    set tab list name of {_p} to "%{_p}% %{_livesColor}%[%{lives::%{_uuid}%}%&f]"
+
+# Command to test Discord integration (admin only)
+command /testdiscord:
+    permission: lives.admin
+    permission message: {@prefix} &cYou don't have permission to use this command!
+    trigger:
+        # Check if DiscordSRV plugin is loaded
+        set {_discordLoaded} to false
+        loop all plugins:
+            if loop-value is "DiscordSRV":
+                set {_discordLoaded} to true
+                
+        if {_discordLoaded} is true:
+            send "{@prefix} &aSending test message to Discord..."
+            
+            # Test message
+            set {_testMessage} to "🔔 **Test message from Minecraft server.** Hardcore Lives System is connected to Discord!"
+            
+            # Send test message using DiscordSRV command
+            execute console command "discord broadcast #server-bany %{_testMessage}%"
+            
+            send "{@prefix} &aMessage has been sent. Check Discord channel."
+        else:
+            send "{@prefix} &cDiscordSRV plugin is not installed or not loaded!"
+
+# Update all players on script load
+on skript load:
+    loop all players:
+        updateTabList(loop-player)
+
+# Fix tab list every 5 minutes (in case of de-synchronization)
+every 5 minutes:
+    loop all players:
+        updateTabList(loop-player)
