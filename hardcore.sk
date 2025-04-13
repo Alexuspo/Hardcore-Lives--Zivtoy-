@@ -4,6 +4,8 @@
 # Proměnné
 options:
     prefix: &8[&cŽivoty&8] &r
+    # Nastavení Discord kanálu, kam se budou posílat oznámení - přímo Channel ID
+    discord-channel-id: "1360974208456196096"
 
 # Nastavení počtu životů při prvním připojení
 on first join:
@@ -142,6 +144,24 @@ on death:
         
         # Oznámení všem hráčům
         broadcast "{@prefix} &4%victim% &cztratil všechny životy a byl dočasně banován na &4%{_readableTime}%&c!"
+        
+        # Poslat oznámení na Discord pomocí příkazu (kompatibilní způsob)
+        set {_discordLoaded} to false
+        loop all plugins:
+            if loop-value is "DiscordSRV":
+                set {_discordLoaded} to true
+                
+        if {_discordLoaded} is true:
+            # Odeslání zprávy na Discord pomocí správného příkazu podle dokumentace
+            set {_discordMessage} to "💀 **%victim%** ztratil všechny životy! 🔨 Dočasný ban na: **%{_readableTime}%** ⏰"
+            execute console command "discord broadcast #server-bany %{_discordMessage}%"
+            
+            # Log do konzole
+            log "[HardcoreLives] Odesláno oznámení o banu hráče %victim% na Discord server" to "plugins/Skript/logs/hardcore-lives.log"
+        
+        # Log warning pokud DiscordSRV není nainstalován
+        if {_discordLoaded} is false:
+            log "[HardcoreLives] VAROVÁNÍ: DiscordSRV není nainstalován nebo načten, oznámení nebylo odesláno" to "plugins/Skript/logs/hardcore-lives.log"
     
     # Když hráč ztratí život, aktualizujeme jeho tab
     if {lives::%victim's uuid%} is greater than 0:
@@ -253,6 +273,30 @@ function updateTabList(p: player):
     
     # Nastavení prefixu nebo suffixu v tab listu (záleží na verzi serveru a pluginu)
     set tab list name of {_p} to "%{_p}% %{_livesColor}%[%{lives::%{_uuid}%}%&f]"
+
+# Příkaz pro test Discord integrace (pouze pro adminy)
+command /testdiscord:
+    permission: lives.admin
+    permission message: {@prefix} &cNemáš oprávnění použít tento příkaz!
+    trigger:
+        # Kontrola, zda je plugin DiscordSRV načten
+        set {_discordLoaded} to false
+        loop all plugins:
+            if loop-value is "DiscordSRV":
+                set {_discordLoaded} to true
+                
+        if {_discordLoaded} is true:
+            send "{@prefix} &aOdesílám testovací zprávu na Discord..."
+            
+            # Testovací zpráva
+            set {_testMessage} to "🔔 **Testovací zpráva z Minecraft serveru.** Hardcore Lives System je připojen k Discordu!"
+            
+            # Odeslání testovací zprávy pomocí DiscordSRV příkazu s ID kanálu
+            execute console command "discord broadcast #server-bany %{_testMessage}%"
+            
+            send "{@prefix} &aZpráva byla odeslána. Zkontrolujte Discord kanál."
+        else:
+            send "{@prefix} &cPlugin DiscordSRV není nainstalován nebo není načten!"
 
 # Aktualizace všech hráčů při načtení skriptu
 on skript load:
