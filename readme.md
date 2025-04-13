@@ -10,6 +10,7 @@
 
 ## Příkazy
 - `/zivoty` - zobrazí počet zbývajících životů
+- `/zivotyvse [stránka]` - zobrazí počet životů všech hráčů včetně offline (aliasy: `/allives`, `/vsezivoty`)
 - `/resetlives <hráč>` - obnoví hráči všechny životy (jen admin)
 - `/setlives <hráč> <počet>` - nastaví počet životů (jen admin)
 - `/testdiscord` - otestuje odesílání zpráv na Discord (jen admin)
@@ -21,6 +22,34 @@
 4. Nakopírujte všechny pluginy do složky `/plugins/`
 5. Nakopírujte `hardcore.sk` do složky `/plugins/Skript/scripts/`
 6. Restartujte server nebo použijte `/sk reload hardcore.sk`
+
+## Oprávnění
+- `lives.admin` - přístup k admin příkazům (`/resetlives`, `/setlives`, `/testdiscord`)
+- `lives.list` - přístup k příkazu `/zivotyvse` pro zobrazení životů všech hráčů
+
+## Funkce
+### Systém životů
+- Hráči mají maximálně 3 životy
+- Životy jsou uloženy pomocí UUID, takže fungují i po změně jména
+- Při smrti se odečte jeden život
+- Barvy životů: zelená (3), oranžová (2), červená (1)
+
+### Obnova životů
+- Snědení zlatého jablka přidá jeden život
+- Snědení očarovaného zlatého jablka také přidá jeden život
+- Maximum je vždy 3 životy
+- Při snězení jablka se přehraje zvukový efekt
+
+### Seznam životů
+- Příkaz `/zivotyvse` zobrazí přehledný seznam všech hráčů
+- Zobrazuje 10 hráčů na stránku s navigací
+- Označuje online hráče zelenou barvou
+- Barevně rozlišuje počet životů pro lepší přehlednost
+
+### Dočasný ban
+- Při ztrátě všech životů je hráč dočasně zabanován
+- Náhodná délka banu 1 sekunda až 10 hodin
+- Po odbanování se hráč vrací s 1 životem
 
 ## Nastavení Discord integrace
 1. Vytvořte Discord bota a získejte jeho token
@@ -38,8 +67,8 @@
   - Emoji pro lepší vizuální efekt
 
 ## Požadavky
-- Spigot/Paper server
-- Skript plugin
+- Spigot/Paper server 1.8+ (testováno na 1.16+)
+- Skript plugin v nejnovější verzi
 - EssentialsX plugin
 - DiscordSRV plugin (pro Discord integraci)
 
@@ -55,3 +84,9 @@ Pokud Discord integrace nefunguje:
 3. Zkontrolujte logy v `/plugins/DiscordSRV/debug/` pro případné chyby
 4. Zkontrolujte oprávnění bota na Discord serveru
 5. Použijte příkaz `/discord reload` pro obnovení připojení
+
+## Poslední aktualizace
+- Přidán příkaz `/zivotyvse` pro zobrazení životů všech hráčů včetně offline
+- Vylepšena integrace s Discord serverem
+- Opraveny chyby ve formátování časů banu
+- Aktualizováno: 13. dubna 2025

@@ -44,6 +44,101 @@ command /zivoty:
         
         send "{@prefix} &aTvoje životy: %{_livesColor}%%{lives::%player's uuid%}%"
 
+# Příkaz pro zobrazení životů všech hráčů (i offline)
+command /zivotyvse [<integer>]:
+    aliases: allives, vsezivoty
+    permission: lives.list
+    permission message: {@prefix} &cNemáš oprávnění použít tento příkaz!
+    usage: /zivotyvse [stránka]
+    trigger:
+        # Získání počtu hráčů
+        set {_count} to 0
+        loop {lives::*}:
+            add 1 to {_count}
+        
+        # Pokud nikdo nemá záznam o životech
+        if {_count} is 0:
+            send "{@prefix} &cŽádný hráč zatím nemá záznam o životech."
+            stop
+        
+        # Nastavení stránkování
+        set {_perPage} to 10 # Počet hráčů na stránku
+        set {_maxPage} to ceil({_count} / {_perPage})
+        
+        # Kontrola platnosti stránky
+        if arg-1 is not set:
+            set {_page} to 1
+        else:
+            set {_page} to arg-1
+        
+        if {_page} > {_maxPage}:
+            set {_page} to {_maxPage}
+        
+        if {_page} < 1:
+            set {_page} to 1
+        
+        # Výpočet indexů pro stránkování
+        set {_start} to ({_page} - 1) * {_perPage} + 1
+        set {_end} to {_page} * {_perPage}
+        if {_end} > {_count}:
+            set {_end} to {_count}
+        
+        # Hlavička
+        send "&8&m-----------------------------------------------------"
+        send "{@prefix} &e&lSeznam životů všech hráčů &7(Stránka %{_page}%/%{_maxPage}%)"
+        send "&8&m-----------------------------------------------------"
+        
+        # Procházení a zobrazení hráčů
+        set {_i} to 0
+        loop indices of {lives::*}:
+            add 1 to {_i}
+            
+            if {_i} is between {_start} and {_end}:
+                set {_uuid} to loop-value parsed as an offline player's uuid
+                set {_playerName} to "%{_uuid}%" parsed as an offline player
+                
+                # Kontrola, zda je hráč online nebo offline
+                set {_status} to ""
+                set {_name} to {_playerName}
+                # Oprava vnořené smyčky - správný způsob procházení hráčů
+                loop all players:
+                    set {_loopPlayer} to loop-player
+                    if uuid of {_loopPlayer} is {_uuid}:
+                        set {_status} to " &a[ONLINE]"
+                        set {_name} to {_loopPlayer}
+                
+                # Nastavení barvy podle počtu životů
+                set {_livesColor} to ""
+                if {lives::%{_uuid}%} is 3:
+                    set {_livesColor} to "&2" # Zelená pro 3 životy
+                else if {lives::%{_uuid}%} is 2:
+                    set {_livesColor} to "&6" # Oranžová pro 2 životy
+                else if {lives::%{_uuid}%} is 1:
+                    set {_livesColor} to "&c" # Červená pro 1 život
+                else if {lives::%{_uuid}%} is 0:
+                    set {_livesColor} to "&4" # Tmavě červená pro 0 životů
+                
+                # Zobrazení řádku
+                send "&7%{_i}%. &f%{_name}%%{_status}%: %{_livesColor}%%{lives::%{_uuid}%}% &7život(y)"
+        
+        # Patička a navigační tlačítka
+        send "&8&m-----------------------------------------------------"
+        
+        # Zobrazení navigačních tlačítek pokud je více stránek
+        if {_maxPage} > 1:
+            if {_page} is 1:
+                set {_prevButton} to "&8[&7<<<&8]"
+            else:
+                set {_prevButton} to "&8[&e<<<&8]"
+            
+            if {_page} is {_maxPage}:
+                set {_nextButton} to "&8[&7>>>&8]"
+            else:
+                set {_nextButton} to "&8[&e>>>&8]"
+            
+            send formatted "%{_prevButton}% &7Stránka &e%{_page}%&7/&e%{_maxPage}% %{_nextButton}%"
+            send formatted "<tooltip:Klikni pro předchozí stránku><suggest command:/zivotyvse %{_page} - 1%>%{_prevButton}%<reset> <tooltip:Klikni pro další stránku><suggest command:/zivotyvse %{_page} + 1%>%{_nextButton}%<reset>"
+
 # Snížení počtu životů při smrti
 on death:
     # Zajistíme, že hráč má nastavenou proměnnou
