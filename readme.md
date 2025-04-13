@@ -1,7 +1,7 @@
 # Hardcore Lives System
 
 ## O co jde
-- Každý hráč má 3 životy
+- Každý hráč má na začátku pouze 3 životy
 - Při smrti ztrácí 1 život
 - Po ztrátě všech životů je hráč dočasně zabanován (0-10 hodin)
 - Po návratu z banu má hráč pouze 1 život
