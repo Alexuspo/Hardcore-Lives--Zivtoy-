@@ -393,6 +393,116 @@ command /testdiscord:
         else:
             send "{@prefix} &cPlugin DiscordSRV není nainstalován nebo není načten!"
 
+# Příkaz pro darování životů a odbanování hráče
+command /darzivotyban [<offline player>] [<integer>]:
+    aliases: givelives, darovat
+    usage: /darzivotyban <hráč> <počet životů>
+    trigger:
+        if arg-1 is set:
+            if arg-2 is set:
+                # Kontrola zda hráč má dostatek životů na darování
+                if {lives::%player's uuid%} >= arg-2:
+                    # Kontrola zda cílový hráč je zabanovaný
+                    set {_target} to arg-1
+                    set {_isBanned} to false
+                    
+                    # Opravený způsob kontroly, zda je hráč zabanovaný (bez použití store result)
+                    execute console command "banlist"
+                    # Jednoduchá kontrola - pokud hráč není online a má 0 životů, považujeme ho za zabanovaného
+                    if {lives::%{_target}'s uuid%} is 0:
+                        if {_target} is offline:
+                            set {_isBanned} to true
+                    
+                    if {_isBanned} is true:
+                        # Hráč je zabanovaný, pokračujeme
+                        # Odečteme životy dárci
+                        remove arg-2 from {lives::%player's uuid%}
+                        
+                        # Přidáme životy příjemci
+                        add arg-2 to {lives::%{_target}'s uuid%}
+                        if {lives::%{_target}'s uuid%} > 3:
+                            set {lives::%{_target}'s uuid%} to 3
+                        
+                        # Unban hráče
+                        execute console command "pardon %{_target}%"
+                        
+                        # Oznámení všem hráčům
+                        broadcast "{@prefix} &a%player% &edaroval &a%arg-2% &eživotů hráči &a%{_target}% &ea pomohl mu tím zrušit ban!"
+                        
+                        # Aktualizace tab listu dárce
+                        updateTabList(player)
+                        
+                        # Discord oznámení
+                        set {_discordLoaded} to false
+                        loop all plugins:
+                            if loop-value is "DiscordSRV":
+                                set {_discordLoaded} to true
+                        
+                        if {_discordLoaded} is true:
+                            set {_discordMessage} to "💖 **%player%** daroval %arg-2% životů hráči **%{_target}%** a pomohl mu zrušit ban! 🔓"
+                            execute console command "discord broadcast #server-bany %{_discordMessage}%"
+                    else:
+                        send "{@prefix} &cHráč %{_target}% není zabanovaný! Nemůžeš mu darovat životy pro zrušení banu."
+                else:
+                    send "{@prefix} &cNemáš dostatek životů! Aktuálně máš &4%{lives::%player's uuid%}% &cživotů."
+            else:
+                send "{@prefix} &cMusíš zadat počet životů, které chceš darovat! (max. 3)"
+        else:
+            send "{@prefix} &cMusíš zadat jméno hráče, kterému chceš darovat životy!"
+
+# Příkaz pro darování životů (bez odbanování)
+command /darzivotyhraci [<player>] [<integer>]:
+    aliases: givelivesplayer, darovat_zivoty
+    usage: /darzivotyhraci <hráč> <počet životů>
+    trigger:
+        if arg-1 is set:
+            if arg-2 is set:
+                # Kontrola zda hráč má dostatek životů na darování
+                if {lives::%player's uuid%} >= arg-2:
+                    if arg-2 > 0:
+                        # Kontrola zda cílový hráč potřebuje životy
+                        if {lives::%arg-1's uuid%} < 3:
+                            # Odečteme životy dárci
+                            remove arg-2 from {lives::%player's uuid%}
+                            
+                            # Přidáme životy příjemci (max. do 3)
+                            set {_oldLives} to {lives::%arg-1's uuid%}
+                            add arg-2 to {lives::%arg-1's uuid%}
+                            
+                            if {lives::%arg-1's uuid%} > 3:
+                                set {_gifted} to 3 - {_oldLives}
+                                set {lives::%arg-1's uuid%} to 3
+                                
+                                # Opravena syntaxe pro vrácení přebývajících životů - změna arg-2 na argument 2
+                                set {_returnLives} to argument 2 - {_gifted}
+                                add {_returnLives} to {lives::%player's uuid%}
+                                
+                                send "{@prefix} &eHráč již měl &a%{_oldLives}% &eživotů, takže jsi mu mohl darovat jen &a%{_gifted}% &eživotů. Vráceno: &a%{_returnLives}% &eživotů."
+                            else:
+                                set {_gifted} to arg-2
+                            
+                            # Oznámení oběma hráčům
+                            send "{@prefix} &aDaroval jsi &2%{_gifted}% &aživotů hráči &2%arg-1%&a." to player
+                            send "{@prefix} &aHráč &2%player% &ati daroval &2%{_gifted}% &aživotů!" to arg-1
+                            
+                            # Aktualizace tab listů
+                            updateTabList(player)
+                            updateTabList(arg-1)
+                            
+                            # Zvukový efekt
+                            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player's location for player
+                            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at arg-1's location for arg-1
+                        else:
+                            send "{@prefix} &cHráč %arg-1% již má maximální počet životů (3)!"
+                    else:
+                        send "{@prefix} &cMusíš zadat kladný počet životů!"
+                else:
+                    send "{@prefix} &cNemáš dostatek životů! Aktuálně máš &4%{lives::%player's uuid%}% &cživotů."
+            else:
+                send "{@prefix} &cMusíš zadat počet životů, které chceš darovat!"
+        else:
+            send "{@prefix} &cMusíš zadat jméno hráče, kterému chceš darovat životy!"
+
 # Aktualizace všech hráčů při načtení skriptu
 on skript load:
     loop all players:

@@ -349,6 +349,116 @@ command /setlives [<player>] [<integer>]:
         else:
             send "{@prefix} &cYou must specify a player name!"
 
+# Command to donate lives and unban a player
+command /givelives [<offline player>] [<integer>]:
+    aliases: donatelives, unbanlives
+    usage: /givelives <player> <number of lives>
+    trigger:
+        if arg-1 is set:
+            if arg-2 is set:
+                # Check if player has enough lives to donate
+                if {lives::%player's uuid%} >= arg-2:
+                    # Check if target player is banned
+                    set {_target} to arg-1
+                    set {_isBanned} to false
+                    
+                    # Fixed way to check if player is banned (without using store result)
+                    execute console command "banlist"
+                    # Simple check - if player is offline and has 0 lives, consider them banned
+                    if {lives::%{_target}'s uuid%} is 0:
+                        if {_target} is offline:
+                            set {_isBanned} to true
+                    
+                    if {_isBanned} is true:
+                        # Player is banned, proceed
+                        # Subtract lives from donor
+                        remove arg-2 from {lives::%player's uuid%}
+                        
+                        # Add lives to recipient
+                        add arg-2 to {lives::%{_target}'s uuid%}
+                        if {lives::%{_target}'s uuid%} > 3:
+                            set {lives::%{_target}'s uuid%} to 3
+                        
+                        # Unban player
+                        execute console command "pardon %{_target}%"
+                        
+                        # Announcement to all players
+                        broadcast "{@prefix} &a%player% &edonated &a%arg-2% &elives to player &a%{_target}% &eand helped remove their ban!"
+                        
+                        # Update donor's tab list
+                        updateTabList(player)
+                        
+                        # Discord notification
+                        set {_discordLoaded} to false
+                        loop all plugins:
+                            if loop-value is "DiscordSRV":
+                                set {_discordLoaded} to true
+                        
+                        if {_discordLoaded} is true:
+                            set {_discordMessage} to "💖 **%player%** donated %arg-2% lives to player **%{_target}%** and helped remove their ban! 🔓"
+                            execute console command "discord broadcast #server-bany %{_discordMessage}%"
+                    else:
+                        send "{@prefix} &cPlayer %{_target}% is not banned! You can't donate lives to unban them."
+                else:
+                    send "{@prefix} &cYou don't have enough lives! You currently have &4%{lives::%player's uuid%}% &clives."
+            else:
+                send "{@prefix} &cYou must specify the number of lives to donate! (max. 3)"
+        else:
+            send "{@prefix} &cYou must specify the name of the player you want to donate lives to!"
+
+# Command to donate lives to another player (without unbanning)
+command /givelivesplayer [<player>] [<integer>]:
+    aliases: donatelives_player, sharelives
+    usage: /givelivesplayer <player> <number of lives>
+    trigger:
+        if arg-1 is set:
+            if arg-2 is set:
+                # Check if player has enough lives to donate
+                if {lives::%player's uuid%} >= arg-2:
+                    if arg-2 > 0:
+                        # Check if target player needs lives
+                        if {lives::%arg-1's uuid%} < 3:
+                            # Subtract lives from donor
+                            remove arg-2 from {lives::%player's uuid%}
+                            
+                            # Add lives to recipient (max up to 3)
+                            set {_oldLives} to {lives::%arg-1's uuid%}
+                            add arg-2 to {lives::%arg-1's uuid%}
+                            
+                            if {lives::%arg-1's uuid%} > 3:
+                                set {_gifted} to 3 - {_oldLives}
+                                set {lives::%arg-1's uuid%} to 3
+                                
+                                # Fixed syntax for returning excess lives - changing arg-2 to argument 2
+                                set {_returnLives} to argument 2 - {_gifted}
+                                add {_returnLives} to {lives::%player's uuid%}
+                                
+                                send "{@prefix} &eThe player already had &a%{_oldLives}% &elives, so you could only donate &a%{_gifted}% &elives. Returned: &a%{_returnLives}% &elives."
+                            else:
+                                set {_gifted} to arg-2
+                            
+                            # Notification to both players
+                            send "{@prefix} &aYou donated &2%{_gifted}% &alives to player &2%arg-1%&a." to player
+                            send "{@prefix} &aPlayer &2%player% &adonated &2%{_gifted}% &alives to you!" to arg-1
+                            
+                            # Update tab lists
+                            updateTabList(player)
+                            updateTabList(arg-1)
+                            
+                            # Sound effect
+                            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player's location for player
+                            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at arg-1's location for arg-1
+                        else:
+                            send "{@prefix} &cPlayer %arg-1% already has maximum lives (3)!"
+                    else:
+                        send "{@prefix} &cYou must specify a positive number of lives!"
+                else:
+                    send "{@prefix} &cYou don't have enough lives! You currently have &4%{lives::%player's uuid%}% &clives."
+            else:
+                send "{@prefix} &cYou must specify the number of lives to donate!"
+        else:
+            send "{@prefix} &cYou must specify the name of the player you want to donate lives to!"
+
 # Function to update tab list
 function updateTabList(p: player):
     set {_uuid} to uuid of {_p}
